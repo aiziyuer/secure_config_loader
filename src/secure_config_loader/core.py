@@ -3,6 +3,7 @@ import yaml
 from pathlib import Path
 from ansible.constants import DEFAULT_VAULT_ID_MATCH, DEFAULT_VAULT_PASSWORD_FILE
 from ansible.parsing.vault import VaultLib, VaultSecret, AnsibleVaultError
+
 from typing import Any, Optional
 from box import Box
 
@@ -28,6 +29,9 @@ class SecureConfigLoader:
         3. ANSIBLE_VAULT_PASSWORD_FILE 环境变量指定的文件
         4. ansible.cfg 中定义的默认密码文件（通常 ~/.vault_pass）
         """
+
+        os.environ["ANSIBLE_STDOUT_CALLBACK"] = "default"  # 禁用高级输出处理
+
         self._register_yaml_constructors()  # 新增此行
         self.vault_password = self._resolve_password(vault_password)
         self.vault = VaultLib(
@@ -87,21 +91,29 @@ class SecureConfigLoader:
     def _unsupported_format(self, _):
         raise ValueError("不支持的配置文件格式")
 
-    def _decrypt_value(self, value: Any) -> Any:
+    def decrypt_value(self, value: Any) -> Any:
         """递归解密并转换为 Box 对象"""
         if isinstance(value, dict):
             return Box(
-                {k: self._decrypt_value(v) for k, v in value.items()},
+                {k: self.decrypt_value(v) for k, v in value.items()},
                 box_dots=True,  # 启用点分语法
             )
         elif isinstance(value, list):
-            return [self._decrypt_value(item) for item in value]
+            return [self.decrypt_value(item) for item in value]
         elif isinstance(value, str) and value.startswith("$ANSIBLE_VAULT"):
             try:
                 return self.vault.decrypt(value).decode("utf-8")
             except AnsibleVaultError as e:
                 raise ValueError(f"解密失败: {str(e)}") from e
         return value
+
+    def encrypt_value(self, value: str) -> str:
+        """加密给定的值"""
+        try:
+            encrypted_value = self.vault.encrypt(value.encode("utf-8")).decode("utf-8")
+            return f"$ANSIBLE_VAULT{encrypted_value}"
+        except AnsibleVaultError as e:
+            raise ValueError(f"加密失败: {str(e)}") from e
 
     def load(self, file_path: str) -> Box:  # 修改返回类型
         config_file = Path(file_path)
@@ -114,13 +126,4 @@ class SecureConfigLoader:
         with config_file.open() as f:
             raw_config = loader(f)
 
-        return self._decrypt_value(raw_config)
-
-
-if __name__ == "__main__":
-
-    # 或硬编码密码（仅用于测试）
-    loader = SecureConfigLoader()
-
-    config = loader.load("env_dev.yaml")
-    print("数据库配置:", config.get("mysql.password", 123))
+        return self.decrypt_value(raw_config)

@@ -16,6 +16,7 @@ setup(
         "python-box>=6.0",
         "PyYAML>=6.0",
         "toml>=0.10",
+        "python-box>=7.2.0",
         "python-dotenv>=0.19",
     ],
     classifiers=[
