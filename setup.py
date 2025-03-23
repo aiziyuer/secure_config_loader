@@ -2,7 +2,8 @@ from setuptools import setup, find_packages
 
 setup(
     name="secure-config-loader",
-    version="0.1.0",
+    use_scm_version=True, # 添加动态版本管理
+    setup_requires=["setuptools_scm"], # 添加依赖
     author="aiziyuer",
     author_email="910217951@qq.com",
     description="Secure multi-format configuration loader with Ansible Vault support",
