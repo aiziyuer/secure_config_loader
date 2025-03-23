@@ -1,0 +1,5 @@
+ansible-core>=2.13
+python-box>=6.0
+PyYAML>=6.0
+toml>=0.10
+python-dotenv>=0.19
