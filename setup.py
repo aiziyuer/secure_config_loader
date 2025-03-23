@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="secure-config-loader",
-    version="0.1.3",
+    version="0.1.4",
     author="aiziyuer",
     author_email="910217951@qq.com",
     description="Secure multi-format configuration loader with Ansible Vault support",
