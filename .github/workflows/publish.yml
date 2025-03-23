@@ -1,8 +1,9 @@
 name: Publish Python Package
 
 on:
-  release:
-    types: [created, published]
+  push:
+    tags:
+      - 'v*'
 
 jobs:
   deploy:
@@ -30,9 +31,7 @@ jobs:
 
       - name: Build package
         run: |
-          python -m build  \
-           --config-setting=--global-option=--version \
-           --config-setting=--global-option=${{ steps.get_version.outputs.version }}
+          python -m build --verbose
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
