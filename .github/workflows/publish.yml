@@ -2,13 +2,21 @@ name: Publish Python Package
 
 on:
   release:
-    types: [created]
+    types: [created, published]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # 需要完整提交历史
+
+      - name: Get version
+        id: get_version
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          echo "version=${TAG#v}" >> $GITHUB_OUTPUT
 
       - name: Set up Python 3.12
         uses: actions/setup-python@v5
@@ -21,10 +29,14 @@ jobs:
           pip install build twine
 
       - name: Build package
-        run: python -m build
+        run: |
+          python -m build  \
+           --config-setting=--global-option=--version \
+           --config-setting=--global-option=${{ steps.get_version.outputs.version }}
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
+          verbose: true # 开启详细日志
           user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}
